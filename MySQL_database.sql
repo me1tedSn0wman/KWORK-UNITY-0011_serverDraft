@@ -1,0 +1,67 @@
+CREATE DATABASE duelofanswer;
+
+USE duelofanswer;
+
+
+CREATE TABLE questions (
+	QUESTION_ID INT NOT NULL PRIMARY KEY,
+	QUESTION_NUM INT,
+	CREATE_DTTM TIMESTAMP,
+	QUESTION VARCHAR(2000),
+	ANSWER_ONE VARCHAR(2000),
+	ANSWER_TWO VARCHAR(2000),
+	HIDDEN_FLAG BOOL
+)
+PARTITION BY KEY(QUESTION_ID)
+;
+
+
+CREATE TABLE resonses (
+	RESPONSE_ID INT NOT NULL PRIMARY KEY,
+	RESPONSE_DTTM TIMESTAMP,
+	CLIENT_ID VARCHAR(2000),
+	QUESTION_NUM INT,
+	ANSWER SMALLINT
+) PARTITION BY KEY(CLIENT_ID)
+;
+
+CREATE TABLE last_index as 
+	SELECT TOP 1
+		quest.QUESTION_ID,
+		quest.QUESTION_NUM
+	FROM 
+		questions as quest
+	GROUP BY
+		QUESTION_NUM
+	ORDER BY
+		CREATE_DTTM desc
+	PRIMARY KEY (quest.QUESTION_NUM)
+;	
+	
+drop table questions_statistics_s1;
+CREATE TABLE questions_statistics_s1 AS
+	SELECT TOP 1
+		resp.RESPONSE_ID,
+		resp.CLIENT_ID,
+		resp.QUESTION_NUM,
+		resp.ANSWER
+	FROM
+		resonses as resp
+	GROUP BY
+		resp.CLIENT_ID,
+		resp.QUESTION_NUM
+	ORDER BY 
+		RESPONSE_DTTM desc
+;
+
+CREATE TABLE questions_statistics as 
+	SELECT 
+		resp.CLIENT_ID,
+		resp.QUESTION_NUM,
+		SUM(IF(resp.ANSWER = 1,1,0));
+		SUM(IF(resp.ANSWER = 2,1,0));
+	FROM 
+		questions_statistics_s1
+	GROUP BY
+		resp.CLIENT_ID,
+		resp.QUESTION_NUM
